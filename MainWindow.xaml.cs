@@ -38,45 +38,80 @@ public partial class MainWindow : Window
     private readonly ObservableCollection<WindowInfo> _windows = new();
     private HwndSource? _hwndSource;
     private bool _expanded;
+    private bool _contextMenuOpen;
 
     private static readonly Brush ActiveBrush   = new SolidColorBrush(Color.FromRgb(0xcd, 0xd6, 0xf4));
     private static readonly Brush InactiveBrush = new SolidColorBrush(Color.FromRgb(0x6c, 0x70, 0x86));
 
-private const double CollapsedWidth = 48;
-private const double ExpandedWidth = 220;
-
-public MainWindow()
-{
-    InitializeComponent();
-
-    WindowList.ItemsSource = _windows;
-
-    var area = SystemParameters.WorkArea;
-
-    Left = area.Left;
-    Top = area.Top;
-
-    Height = area.Height;
-    Width = CollapsedWidth;
-
-    RefreshList();
-
-    var listTimer = new DispatcherTimer
+    private const double CollapsedWidth = 48;
+    private const double ExpandedWidth = 220;
+    private DateTime? _hoverStart;
+    public MainWindow()
     {
-        Interval = TimeSpan.FromSeconds(2)
-    };
+        InitializeComponent();
 
-    listTimer.Tick += (_, _) => RefreshList();
-    listTimer.Start();
+        WindowList.ItemsSource = _windows;
 
-    var activeTimer = new DispatcherTimer
-    {
-        Interval = TimeSpan.FromMilliseconds(500)
-    };
+        var area = SystemParameters.WorkArea;
 
-    activeTimer.Tick += (_, _) => RefreshActive();
-    activeTimer.Start();
-}
+        Left = area.Left;
+        Top = area.Top;
+
+        Height = area.Height;
+        Width = CollapsedWidth;
+
+        RefreshList();
+
+        var listTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromSeconds(2)
+        };
+
+        listTimer.Tick += (_, _) => RefreshList();
+        listTimer.Start();
+
+        var activeTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(500)
+        };
+
+        activeTimer.Tick += (_, _) => RefreshActive();
+        activeTimer.Start();
+        var hoverTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(50)
+        };
+
+        hoverTimer.Tick += (_, _) =>
+        {
+            if (_contextMenuOpen)
+                return;
+
+            if (IsMouseOver)
+            {
+                _hoverStart ??= DateTime.Now;
+
+                if (!_expanded &&
+                    DateTime.Now - _hoverStart > TimeSpan.FromMilliseconds(300))
+                {
+                    _expanded = true;
+                    AnimateWidth(ExpandedWidth);
+                }
+            }
+            else
+            {
+                _hoverStart = null;
+
+                if (_expanded)
+                {
+                    _expanded = false;
+                    AnimateWidth(CollapsedWidth);
+                }
+            }
+        };
+
+        hoverTimer.Start();
+    }
 
     protected override void OnSourceInitialized(EventArgs e)
     {
@@ -115,26 +150,6 @@ public MainWindow()
     {
         if (IsVisible) Hide();
         else { Show(); Activate(); }
-    }
-    
-    private void Window_MouseEnter(object sender, MouseEventArgs e)
-    {
-        if (_expanded)
-            return;
-
-        _expanded = true;
-
-        AnimateWidth(ExpandedWidth);
-    }
-
-    private void Window_MouseLeave(object sender, MouseEventArgs e)
-    {
-        if (!_expanded)
-            return;
-
-        _expanded = false;
-
-        AnimateWidth(CollapsedWidth);
     }
 
     private void AnimateWidth(double width)
@@ -200,24 +215,50 @@ public MainWindow()
         WindowList.SelectedItem = null;
     }
 
-    private void WindowList_PreviewMouseRightButtonUp(object sender, MouseButtonEventArgs e)
+    private void WindowList_PreviewMouseRightButtonUp(
+        object sender,
+        MouseButtonEventArgs e)
     {
-        if (e.OriginalSource is FrameworkElement fe && fe.DataContext is WindowInfo info)
+        if (e.OriginalSource is FrameworkElement fe &&
+            fe.DataContext is WindowInfo info)
         {
             var menu = new ContextMenu
             {
-                Background = new SolidColorBrush(Color.FromRgb(0x31, 0x32, 0x44)),
-                BorderBrush = new SolidColorBrush(Color.FromRgb(0x45, 0x47, 0x5a))
+                Background = new SolidColorBrush(
+                    Color.FromRgb(0x31, 0x32, 0x44)),
+                BorderBrush = new SolidColorBrush(
+                    Color.FromRgb(0x45, 0x47, 0x5a))
             };
+
+            menu.Opened += (_, _) =>
+            {
+                _contextMenuOpen = true;
+            };
+
+            menu.Closed += (_, _) =>
+            {
+                _contextMenuOpen = false;
+
+                if (!IsMouseOver)
+                {
+                    _expanded = false;
+                    AnimateWidth(CollapsedWidth);
+                }
+            };
+
             var item = new MenuItem
             {
                 Header = "このウィンドウを終了",
-                Foreground = new SolidColorBrush(Color.FromRgb(0xf3, 0x8b, 0xa8)),
+                Foreground = new SolidColorBrush(
+                    Color.FromRgb(0xf3, 0x8b, 0xa8)),
                 Tag = info
             };
+
             item.Click += CloseWindow_Click;
+
             menu.Items.Add(item);
             menu.IsOpen = true;
+
             e.Handled = true;
         }
     }
