@@ -51,15 +51,7 @@ public partial class MainWindow : Window
         InitializeComponent();
 
         WindowList.ItemsSource = _windows;
-
-        var area = SystemParameters.WorkArea;
-
-        Left = area.Left;
-        Top = area.Top;
-
-        Height = area.Height;
         Width = CollapsedWidth;
-
         RefreshList();
 
         var listTimer = new DispatcherTimer
@@ -113,6 +105,45 @@ public partial class MainWindow : Window
         hoverTimer.Start();
     }
 
+    private void RegisterAppBar()
+    {
+        var hwnd = new WindowInteropHelper(this).Handle;
+
+        Win32Api.RegisterAppBar(hwnd);
+
+        var screenLeft = Win32Api.GetSystemMetrics(Win32Api.SM_XVIRTUALSCREEN);
+        var screenTop = Win32Api.GetSystemMetrics(Win32Api.SM_YVIRTUALSCREEN);
+        var screenHeight = Win32Api.GetSystemMetrics(Win32Api.SM_CYVIRTUALSCREEN);
+
+        var width = (int)CollapsedWidth;
+
+        var rc = Win32Api.SetAppBarPosition(
+            hwnd,
+            Win32Api.ABE_LEFT,
+            screenLeft,
+            screenTop,
+            screenLeft + width,
+            screenTop + screenHeight);
+
+        ApplyPixelBounds(rc);
+    }
+
+    private void ApplyPixelBounds(Win32Api.RECT rc)
+    {
+        var source = PresentationSource.FromVisual(this);
+        if (source?.CompositionTarget == null)
+            return;
+
+        var transform = source.CompositionTarget.TransformFromDevice;
+
+        var topLeft = transform.Transform(new Point(rc.left, rc.top));
+        var bottomRight = transform.Transform(new Point(rc.right, rc.bottom));
+
+        Left = topLeft.X;
+        Top = topLeft.Y;
+        Width = bottomRight.X - topLeft.X;
+        Height = bottomRight.Y - topLeft.Y;
+    }
     protected override void OnSourceInitialized(EventArgs e)
     {
         base.OnSourceInitialized(e);
@@ -125,12 +156,17 @@ public partial class MainWindow : Window
             Win32Api.VK_SPACE);
 
         if (!ok) MessageBox.Show("ホットキーの登録に失敗しました。");
+        HideFromAltTab();
+        RegisterAppBar();
     }
 
     protected override void OnClosed(EventArgs e)
     {
         var hwnd = new WindowInteropHelper(this).Handle;
+
         Win32Api.UnregisterHotKey(hwnd, Win32Api.HOTKEY_ID);
+        Win32Api.UnregisterAppBar(hwnd);
+
         _hwndSource?.RemoveHook(WndProc);
         base.OnClosed(e);
     }
@@ -154,6 +190,9 @@ public partial class MainWindow : Window
 
     private void AnimateWidth(double width)
     {
+        if (width > CollapsedWidth)
+            Topmost = true;
+
         var animation = new DoubleAnimation
         {
             To = width,
@@ -163,6 +202,14 @@ public partial class MainWindow : Window
                 EasingMode = EasingMode.EaseOut
             }
         };
+
+        if (width <= CollapsedWidth)
+        {
+            animation.Completed += (_, _) =>
+            {
+                Topmost = false;
+            };
+        }
 
         BeginAnimation(WidthProperty, animation);
     }
@@ -182,8 +229,11 @@ public partial class MainWindow : Window
             Win32Api.GetWindowText(hWnd, sb, sb.Capacity);
             var title = sb.ToString();
 
-            if (string.IsNullOrWhiteSpace(title) || title == "Switcher") return true;
+            if (string.IsNullOrWhiteSpace(title)) return true;
 
+            if (title == "Switcher") return true;
+            if (title == "Windows 入力エクスペリエンス") return true;
+            if (title == "Windows Input Experience") return true;
             var icon = Win32Api.GetWindowIcon(hWnd);
             current.Add(new WindowInfo { Handle = hWnd, Title = title, Icon = icon });
             return true;
@@ -210,8 +260,13 @@ public partial class MainWindow : Window
     private void WindowList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (WindowList.SelectedItem is not WindowInfo info) return;
-        Win32Api.ShowWindow(info.Handle, Win32Api.SW_RESTORE);
+
+        // 最小化されている場合だけ復元する
+        if (Win32Api.IsIconic(info.Handle))
+            Win32Api.ShowWindow(info.Handle, Win32Api.SW_RESTORE);
+
         Win32Api.SetForegroundWindow(info.Handle);
+
         WindowList.SelectedItem = null;
     }
 
@@ -273,4 +328,17 @@ public partial class MainWindow : Window
     {
         if (e.LeftButton == MouseButtonState.Pressed) DragMove();
     }
+
+    private void HideFromAltTab()
+    {
+        var hwnd = new WindowInteropHelper(this).Handle;
+
+        var exStyle = Win32Api.GetWindowLongPtr(hwnd, Win32Api.GWL_EXSTYLE).ToInt64();
+
+        exStyle |= Win32Api.WS_EX_TOOLWINDOW;
+        exStyle &= ~Win32Api.WS_EX_APPWINDOW;
+
+        Win32Api.SetWindowLongPtr(hwnd, Win32Api.GWL_EXSTYLE, new IntPtr(exStyle));
+    }
+
 }
