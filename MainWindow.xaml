@@ -93,8 +93,8 @@
 
                 <DataTemplate>
 
-                    <Grid Height="36">
-
+                    <Grid Height="36"
+                        ToolTip="{Binding Title}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="48"/>
                             <ColumnDefinition Width="*"/>

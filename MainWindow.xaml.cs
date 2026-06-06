@@ -18,9 +18,28 @@ namespace WindowSwitcher;
 public class WindowInfo : INotifyPropertyChanged
 {
     public IntPtr Handle { get; init; }
-    public string Title { get; init; } = "";
-    public BitmapSource? Icon { get; init; }
-
+    private string _title = "";
+    public string Title
+    {
+        get => _title;
+        set
+        {
+            if (_title == value) return;
+            _title = value;
+            OnChanged(nameof(Title));
+        }
+    }
+    private BitmapSource? _icon;
+    public BitmapSource? Icon
+    {
+        get => _icon;
+        set
+        {
+            if (_icon == value) return;
+            _icon = value;
+            OnChanged(nameof(Icon));
+        }
+    }
     private Brush _foreground = Brushes.White;
     public Brush Foreground
     {
@@ -56,7 +75,7 @@ public partial class MainWindow : Window
 
         var listTimer = new DispatcherTimer
         {
-            Interval = TimeSpan.FromSeconds(2)
+            Interval = TimeSpan.FromSeconds(1)
         };
 
         listTimer.Tick += (_, _) => RefreshList();
@@ -244,8 +263,19 @@ public partial class MainWindow : Window
                 _windows.RemoveAt(i);
 
         foreach (var w in current)
-            if (!_windows.Any(x => x.Handle == w.Handle))
+        {
+            var existing = _windows.FirstOrDefault(x => x.Handle == w.Handle);
+
+            if (existing == null)
+            {
                 _windows.Add(w);
+            }
+            else
+            {
+                existing.Title = w.Title;
+                existing.Icon = w.Icon;
+            }
+        }
 
         RefreshActive();
     }
