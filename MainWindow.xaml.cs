@@ -300,38 +300,44 @@ public partial class MainWindow : Window
         WindowList.SelectedItem = null;
     }
 
+    private ContextMenu CreateBaseContextMenu()
+    {
+        var menu = new ContextMenu
+        {
+            Background = new SolidColorBrush(
+                Color.FromRgb(0x31, 0x32, 0x44)),
+            BorderBrush = new SolidColorBrush(
+                Color.FromRgb(0x45, 0x47, 0x5a))
+        };
+
+        menu.Opened += (_, _) =>
+        {
+            _contextMenuOpen = true;
+        };
+
+        menu.Closed += (_, _) =>
+        {
+            _contextMenuOpen = false;
+
+            if (!IsMouseOver)
+            {
+                _expanded = false;
+                AnimateWidth(CollapsedWidth);
+            }
+        };
+
+        return menu;
+    }
     private void WindowList_PreviewMouseRightButtonUp(
         object sender,
         MouseButtonEventArgs e)
     {
+        var menu = CreateBaseContextMenu();
+
         if (e.OriginalSource is FrameworkElement fe &&
             fe.DataContext is WindowInfo info)
         {
-            var menu = new ContextMenu
-            {
-                Background = new SolidColorBrush(
-                    Color.FromRgb(0x31, 0x32, 0x44)),
-                BorderBrush = new SolidColorBrush(
-                    Color.FromRgb(0x45, 0x47, 0x5a))
-            };
-
-            menu.Opened += (_, _) =>
-            {
-                _contextMenuOpen = true;
-            };
-
-            menu.Closed += (_, _) =>
-            {
-                _contextMenuOpen = false;
-
-                if (!IsMouseOver)
-                {
-                    _expanded = false;
-                    AnimateWidth(CollapsedWidth);
-                }
-            };
-
-            var item = new MenuItem
+            var closeWindowItem = new MenuItem
             {
                 Header = "このウィンドウを終了",
                 Foreground = new SolidColorBrush(
@@ -339,13 +345,28 @@ public partial class MainWindow : Window
                 Tag = info
             };
 
-            item.Click += CloseWindow_Click;
-
-            menu.Items.Add(item);
-            menu.IsOpen = true;
-
-            e.Handled = true;
+            closeWindowItem.Click += CloseWindow_Click;
+            menu.Items.Add(closeWindowItem);
         }
+        else
+        {
+            var exitItem = new MenuItem
+            {
+                Header = "WindowSwitcher を終了",
+                Foreground = new SolidColorBrush(
+                    Color.FromRgb(0xf3, 0x8b, 0xa8))
+            };
+
+            exitItem.Click += (_, _) =>
+            {
+                Application.Current.Shutdown();
+            };
+
+            menu.Items.Add(exitItem);
+        }
+
+        menu.IsOpen = true;
+        e.Handled = true;
     }
 
     private void CloseWindow_Click(object sender, RoutedEventArgs e)
