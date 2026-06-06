@@ -96,7 +96,7 @@
                     <Grid Height="36"
                         ToolTip="{Binding Title}">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="48"/>
+                            <ColumnDefinition Width="44"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
 
