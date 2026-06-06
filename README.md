@@ -2,61 +2,77 @@
 
 A lightweight vertical window switcher for Windows.
 
-WindowSwitcher docks to the left edge of the screen and provides quick access to all open windows. Inspired by sidebar-style launchers and task switchers, it stays out of the way until you hover over it.
+WindowSwitcher docks to the left edge of the screen and provides quick access to all open windows. It stays compact while idle and expands automatically when hovered.
 
 <p align="center">
-  <a href="docs/screenshot-collapsed.png">
-    <img src="docs/screenshot-collapsed.png" width="320" alt="WindowSwitcher collapsed">
-  </a>
   <a href="docs/screenshot-expanded.png">
-    <img src="docs/screenshot-expanded.png" width="320" alt="WindowSwitcher expanded">
+    <img src="docs/screenshot-expanded.png" width="320" alt="Expanded view">
   </a>
-
+  <a href="docs/screenshot-collapsed.png">
+    <img src="docs/screenshot-collapsed.png" width="320" alt="Collapsed view">
+  </a>
 </p>
 
 ## Features
 
-* Vertical sidebar docked to the left edge of the screen
+* Docked to the left edge of the screen using the Windows AppBar API
 * Automatically expands on mouse hover
-* Displays window titles and application icons
+* Displays window icons and titles
 * Highlights the currently active window
+* Updates window titles dynamically (e.g. browser tab changes)
 * Switch windows with a single click
 * Close windows from the context menu
 * Global hotkey (`Ctrl + Shift + Space`)
 * Hidden from Alt+Tab
-* Reserves screen space using the Windows AppBar API
+* Tooltips for truncated window titles
+* Lightweight and always available
 
-## Installation
+## Download
 
 Download the latest release from the Releases page.
-
-Or build from source:
-
-```bash
-git clone https://github.com/bisco/WindowSwitcher.git
-cd WindowSwitcher
-```
-
-Open the solution in Visual Studio and build.
 
 ## Usage
 
 * Move the mouse to the left edge of the screen.
 * The switcher expands automatically.
 * Click a window to activate it.
-* Right-click a window to close it.
-* Press `Ctrl + Shift + Space` to toggle visibility.
+* Right-click a window to open the context menu.
+* Press `Ctrl + Shift + Space` to show or hide the switcher.
 
-## Why?
+## Building
 
-Windows provides Alt+Tab and the taskbar, but neither is optimized for users who frequently switch between many windows throughout the day.
+Requirements:
 
-WindowSwitcher offers a persistent, space-efficient alternative that is always one mouse movement away.
+* Windows 10 or later
+* .NET 10 SDK
 
-## Requirements
+Build and run:
 
-* Windows 10 / Windows 11
-* .NET 8
+```bash
+dotnet run
+```
+
+Publish:
+
+```bash
+dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true
+```
+
+## Motivation
+
+WindowSwitcher was built as an alternative to Alt+Tab and the Windows taskbar for users who frequently switch between many windows throughout the day.
+
+The goal is to provide a fast, always-visible window switcher that requires minimal mouse movement and screen space.
+
+## Roadmap
+
+Future ideas:
+
+* Start automatically with Windows
+* Customizable hotkeys
+* User settings
+* Multi-monitor support improvements
+* Search/filter windows
 
 ## License
 
