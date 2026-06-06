@@ -4,7 +4,15 @@ A lightweight vertical window switcher for Windows.
 
 WindowSwitcher docks to the left edge of the screen and provides quick access to all open windows. Inspired by sidebar-style launchers and task switchers, it stays out of the way until you hover over it.
 
-![screenshot](docs/screenshot.png)
+<p align="center">
+  <a href="docs/screenshot-collapsed.png">
+    <img src="docs/screenshot-collapsed.png" width="320" alt="WindowSwitcher collapsed">
+  </a>
+  <a href="docs/screenshot-expanded.png">
+    <img src="docs/screenshot-expanded.png" width="320" alt="WindowSwitcher expanded">
+  </a>
+
+</p>
 
 ## Features
 
